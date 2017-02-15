@@ -1,3 +1,5 @@
+package chapter01
+
 // Import the Slick interface for H2:
 import scala.slick.driver.H2Driver.simple._
 
@@ -5,24 +7,26 @@ object Example extends App {
 
   // Case class representing a row in our table:
   final case class Message(
-    sender: String,
-    content: String,
-    id: Long = 0L)
+                            sender: String,
+                            content: String,
+                            id: Long = 0L)
 
   // Helper method for creating test data:
   def freshTestData = Seq(
     Message("Dave", "Hello, HAL. Do you read me, HAL?"),
-    Message("HAL",  "Affirmative, Dave. I read you."),
+    Message("HAL", "Affirmative, Dave. I read you."),
     Message("Dave", "Open the pod bay doors, HAL."),
-    Message("HAL",  "I'm sorry, Dave. I'm afraid I can't do that.")
+    Message("HAL", "I'm sorry, Dave. I'm afraid I can't do that.")
   )
 
   // Schema for the "message" table:
   final class MessageTable(tag: Tag)
-      extends Table[Message](tag, "message") {
+    extends Table[Message](tag, "message") {
 
-    def id      = column[Long]("id", O.PrimaryKey, O.AutoInc)
-    def sender  = column[String]("sender")
+    def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
+
+    def sender = column[String]("sender")
+
     def content = column[String]("content")
 
     def * = (sender, content, id) <>
@@ -35,9 +39,14 @@ object Example extends App {
   // An example query that selects a subset of messages:
   val halSays = messages.filter(_.sender === "HAL")
 
+  // Equivalent query built using for comprehension
+  val halSays2 = for {
+    message <- messages if message.sender === "HAL"
+  } yield message
+
   // Create a permanent in-memory H2 database;
   def db = Database.forURL(
-    url    = "jdbc:h2:mem:chat-database;DB_CLOSE_DELAY=-1",
+    url = "jdbc:h2:mem:chat-database;DB_CLOSE_DELAY=-1",
     driver = "org.h2.Driver")
 
   // Connect to the database...
@@ -54,7 +63,21 @@ object Example extends App {
     println("\nSelecting all messages:")
     messages.run.foreach(println)
 
+    println(s"\nSelecting all messages, SQL: ${messages.selectStatement}")
+
     println("\nSelecting only messages from HAL:")
     halSays.run.foreach(println)
+
+    println(s"\nSelecting only messages from HAL, SQL: ${halSays.selectStatement}")
+
+    println("\nSelecting only messages from HAL (for comprehension):")
+    halSays2.run.foreach(println)
+
+    println(s"\nSelecting only messages from HAL (for comprehension), SQL: ${halSays2.selectStatement}")
+
+    println("\nSelecting only message ids from HAL:")
+    halSays.map(_.id).run.foreach(println)
+
+    println(s"\nSelecting only message ids from HAL, SQL: ${halSays.map(_.id).selectStatement}")
   }
 }
