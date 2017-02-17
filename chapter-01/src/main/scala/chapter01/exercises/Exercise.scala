@@ -1,9 +1,9 @@
 package chapter01.exercises
 
 // Import the Slick interface for H2:
-import chapter01.Example.{Message, MessageTable}
-
 import scala.slick.driver.H2Driver.simple._
+
+import chapter01.Example.{Message, MessageTable}
 
 object Exercise extends App {
   def db = Database.forURL(
@@ -15,7 +15,7 @@ object Exercise extends App {
 
   val message = Message("Dave", "What if I say 'Pretty please'?")
 
-  val daveMessages = messages.filter(_.sender === "Dave")
+  val daveMessages = messages.filter((m: MessageTable) => m.sender === "Dave")
 
   // Connect to the database...
   db.withSession { implicit session =>
