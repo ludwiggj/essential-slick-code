@@ -1,9 +1,9 @@
 package chapter02.exercises
 
 // Import the Slick interface for H2:
-import chapter02.Example.{Message, MessageTable}
-
 import scala.slick.driver.H2Driver.simple._
+
+import chapter02.Example.MessageTable
 
 object Exercise extends App {
   def db = Database.forURL(
