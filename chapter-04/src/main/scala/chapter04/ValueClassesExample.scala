@@ -1,19 +1,21 @@
 package chapter04
 
 import java.sql.Timestamp
+
+import chapter04.framework.Profile
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone.UTC
 
-object SumTypesExample extends App {
-
-  trait Profile {
-    val profile: scala.slick.driver.JdbcProfile
-  }
+object ValueClassesExample extends App {
 
   object PKs {
+
     import scala.slick.lifted.MappedTo
+
     case class MessagePK(value: Long) extends AnyVal with MappedTo[Long]
+
     case class UserPK(value: Long) extends AnyVal with MappedTo[Long]
+
   }
 
   trait Tables {
@@ -30,7 +32,8 @@ object SumTypesExample extends App {
     case class User(name: String, id: UserPK = UserPK(0L))
 
     class UserTable(tag: Tag) extends Table[User](tag, "user") {
-      def id   = column[UserPK]("id", O.PrimaryKey, O.AutoInc)
+      def id = column[UserPK]("id", O.PrimaryKey, O.AutoInc)
+
       def name = column[String]("name")
 
       def * = (name, id) <> (User.tupled, User.unapply)
@@ -39,43 +42,24 @@ object SumTypesExample extends App {
     lazy val users = TableQuery[UserTable]
     lazy val insertUser = users returning users.map(_.id)
 
-
-    sealed trait Flag
-    case object Important extends Flag
-    case object Offensive extends Flag
-    case object Spam extends Flag
-    // case object OffTopic extends Flag
-
-    implicit val flagType =
-      MappedColumnType.base[Flag, Char](
-        f => f match {
-          case Important => '!'
-          case Offensive => 'X'
-          case Spam      => '$'
-        },
-        c => c match {
-          case '!' => Important
-          case 'X' => Offensive
-          case '$' => Spam
-        })
-
     case class Message(
-        senderId: UserPK,
-        content:  String,
-        ts:       DateTime,
-        flag:     Option[Flag] = None,
-        id:       MessagePK = MessagePK(0L))
+                        senderId: UserPK,
+                        content: String,
+                        ts: DateTime,
+                        id: MessagePK = MessagePK(0L))
 
     class MessageTable(tag: Tag) extends Table[Message](tag, "message") {
-      def id       = column[MessagePK]("id", O.PrimaryKey, O.AutoInc)
+      def id = column[MessagePK]("id", O.PrimaryKey, O.AutoInc)
+
       def senderId = column[UserPK]("sender")
-      def content  = column[String]("content")
-      def flag     = column[Option[Flag]]("flag")
-      def ts       = column[DateTime]("ts")
 
-      def * = (senderId, content, ts, flag, id) <> (Message.tupled, Message.unapply)
+      def content = column[String]("content")
 
-      def sender = foreignKey("sender_fk", senderId, users)(_.id, onDelete=ForeignKeyAction.Cascade)
+      def ts = column[DateTime]("ts")
+
+      def * = (senderId, content, ts, id) <> (Message.tupled, Message.unapply)
+
+      def sender = foreignKey("sender_fk", senderId, users)(_.id, onDelete = ForeignKeyAction.Cascade)
     }
 
     lazy val messages = TableQuery[MessageTable]
@@ -97,7 +81,7 @@ object SumTypesExample extends App {
       (messages.ddl ++ users.ddl).create
 
       // Users:
-      val halId  = insertUser += User("HAL")
+      val halId = insertUser += User("HAL")
       val daveId = insertUser += User("Dave")
 
       // Insert the conversation, which took place in Feb, 2001:
@@ -105,13 +89,17 @@ object SumTypesExample extends App {
 
       messages ++= Seq(
         Message(daveId, "Hello, HAL. Do you read me, HAL?", start),
-        Message(halId,  "Affirmative, Dave. I read you.", start plusSeconds 2),
+        Message(halId, "Affirmative, Dave. I read you.", start plusSeconds 2),
         Message(daveId, "Open the pod bay doors, HAL.", start plusSeconds 4),
-        Message(halId,  "I'm sorry, Dave. I'm afraid I can't do that.", start plusSeconds 6, Some(Important))
-        )
+        Message(halId, "I'm sorry, Dave. I'm afraid I can't do that.", start plusSeconds 6))
 
-     println(
-       messages.filter(_.flag === (Important : Flag)).run
-     )
+      // Won't compile:
+      // users.filter(_.id === 6L).run
+
+      // Buggy lookup of a sender
+      val id: MessagePK = messages.filter(_.senderId === halId).map(_.id).first
+
+      // This won't compile, as senderId and id are now different types
+      // val rubbish = messages.filter(_.senderId === id)
   }
 }

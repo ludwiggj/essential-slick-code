@@ -2,13 +2,21 @@ package chapter03
 
 import scala.slick.driver.H2Driver.simple._
 
-object Example extends App {
+object Workout extends App {
 
-  // Row representation:
+  // Row representation
+
+  // The id field at the end of the case class has a default value of 0L
+  // This allows it to be omitted when creating a new object, without
+  // having to pass the remaining arguments using keyword parameters.
   final case class Message(sender: String, content: String, id: Long = 0L)
 
   // Schema:
   final class MessageTable(tag: Tag) extends Table[Message](tag, "message") {
+
+    // The id field of Message is mapped to an auto-incrementing primary key (using
+    // the O.AutoInc option). The id value of the id field is ignored when
+    // generating an insert query. The database steps in and generates the value.
     def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
 
     def sender = column[String]("sender")
@@ -43,13 +51,17 @@ object Example extends App {
 
       displayMessages
 
-      // See SQL for the insert statement
+      // Inserting data...
+
+      // insert into "message" ("sender","content")  values (?,?)
       println(s"Basic insert: ${messages.insertStatement}")
 
       // Insert message
       val birthdayMsg = Message("Dave", "When's your birthday?")
       println(s"Adding message $birthdayMsg")
-      messages += birthdayMsg
+      val noOfRowsAdded = messages += birthdayMsg
+
+      println(s"Added $noOfRowsAdded row")
 
       displayMessages
 
@@ -78,6 +90,7 @@ object Example extends App {
 
       // Can create reusable query to retrieve id
       lazy val messagesInsert = messages returning messages.map(_.id)
+
       val jerkMessage = Message("Dave", "You're such a jerk.")
       val nextId = messagesInsert += jerkMessage
       println(s"The ID of inserted message $jerkMessage is: $nextId")
@@ -101,6 +114,8 @@ object Example extends App {
 
       displayMessages
 
+      // Inserting specific columns...
+
       // Map over messages to insert a specific column
       println(s"SQL to insert message sender: ${messages.map(_.sender).insertStatement}")
 
@@ -113,18 +128,27 @@ object Example extends App {
         Message("HAL", "Not really, Dave.")
       )
 
-      val insertedMessages = messagesInsertWithId ++= testMessages
-      println("Inserted multiple messages...")
-      insertedMessages.foreach(println)
+      println(s"Inserted multiple messages...${messagesInsertWithId ++= testMessages}")
 
       displayMessages
+
+      val rowsAdded: Option[Int] = messages ++= Seq(
+        Message("Bob", "Gizza job?"),
+        Message("Harry", "What?")
+      )
+
+      println(s"$rowsAdded rows added")
+
+      displayMessages
+
+      // Updating the database...
 
       val updateQuery = messages.filter(_.sender === "HAL").map(_.sender)
 
       // Update HAL's name:
-      println(s"Updated ${updateQuery.update("HAL 9000")} senders to HAL 9000")
+      println(s"Updated ${updateQuery.update("HAL 9000")} senders from HAL to HAL 9000")
 
-      println(s"via query: ${updateQuery.updateStatement}")
+      println(s"SQL query: ${updateQuery.updateStatement}")
 
       displayMessages
 
@@ -137,6 +161,10 @@ object Example extends App {
       displayMessages
 
       // Add an exclamation to the end of every message
+
+      // This is not currently supported by update in Slick, but there are ways to achieve the same result.
+      // One such way is to use plain SQL queries, which we cover in Chapter 6.
+      // Another is to perform a client side update by defining a Scala function to capture the change to each row:
       def exclaim(msg: Message): Message = msg.copy(content = msg.content + "!")
 
       // We can update rows by selecting the relevant rows from the database, applying this function,
@@ -153,8 +181,10 @@ object Example extends App {
 
       displayMessages
 
+      // Deleting messages
+
       // Delete messages from HAL:
-      // NB: will be zero rows affected because we've renamed HAL to HALL 9000
+      // NB: will be zero rows affected because we've renamed HAL to HAL 9000
       val deleteQuery = messages.filter(_.sender === "HAL")
 
       println(s"Deleted ${deleteQuery.delete} rows")
@@ -162,17 +192,54 @@ object Example extends App {
 
       displayMessages
 
+      val anotherDeleteQuery = messages.filter(_.sender === "HAL 9000")
+
+      println(s"Deleted ${anotherDeleteQuery.delete} rows")
+      println(s"via query: ${anotherDeleteQuery.deleteStatement}")
+
+      displayMessages
+
+      // It is an error to use delete in combination with map.
+
+      // Compilation error:
+
+      // value delete is not a member of scala.slick.lifted.Query[scala.slick.lifted.Column[String],String,Seq]
+      // messages.map(_.content).delete
+
       // Update with a transaction
       def updateContent(id: Long) =
         messages.filter(_.id === id).map(_.content)
 
       println("Update 3 rows in a transaction")
       session.withTransaction {
-        updateContent(2L).update("Wanna come in?")
+        updateContent(1L).update("Wanna come in?")
         updateContent(3L).update("Pretty please!")
-        updateContent(4L).update("Opening now.")
+        updateContent(5L).update("Opening now.")
       }
 
+      displayMessages
+
+      // Roll back the changes
+
+      session.withTransaction {
+        updateContent(1L).update("Yo... Wanna come in?")
+        updateContent(3L).update("Yo... Pretty please!")
+        updateContent(5L).update("Yo... Opening now.")
+        session.rollback
+      }
+
+      displayMessages
+
+      // The rollback doesn’t happen until the withTransaction block ends. If we run queries within the
+      // block, before the rollback actually occurs, they will still see the modified state:
+
+      session.withTransaction {
+        session.rollback
+        updateContent(1L).update("Yo... Wanna come in?")
+        messages.run
+      }
+
+      // Now rolled back
       displayMessages
   }
 

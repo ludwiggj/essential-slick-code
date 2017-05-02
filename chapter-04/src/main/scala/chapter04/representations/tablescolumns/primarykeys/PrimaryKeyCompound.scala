@@ -1,10 +1,8 @@
-package chapter04
+package chapter04.representations.tablescolumns.primarykeys
 
-object PKExample extends App {
+import chapter04.framework.Profile
 
-  trait Profile {
-    val profile: scala.slick.driver.JdbcProfile
-  }
+object PrimaryKeyCompound extends App {
 
   trait Tables {
     this: Profile =>
@@ -53,7 +51,8 @@ object PKExample extends App {
 
   val schema = new Schema(scala.slick.driver.H2Driver)
 
-  import schema._, profile.simple._
+  import schema._
+  import profile.simple._
 
   def db = Database.forURL("jdbc:h2:mem:chapter04", driver = "org.h2.Driver")
 
@@ -67,15 +66,22 @@ object PKExample extends App {
       val halId:  Long = insertUser += User(None, "HAL")
       val elena:  Long = insertUser += User(None, "Elena", Some("elena@example.org"))
 
-      println( users.list )
+      println(users.list)
 
       // A room:
       val airLockId: Long = insertRoom += Room("Air Lock")
+
+      println(rooms.list)
+
+      // Sql to create occupants table
+      occupants.ddl.createStatements.foreach(println)
 
       // Put Dave in the Room:
       occupants += Occupant(airLockId, daveId)
 
       println(occupants.list)
-  }
 
+      // Following violates PK
+//      occupants += Occupant(airLockId, daveId)
+  }
 }

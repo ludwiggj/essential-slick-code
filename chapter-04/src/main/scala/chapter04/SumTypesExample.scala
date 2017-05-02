@@ -1,19 +1,21 @@
 package chapter04
 
 import java.sql.Timestamp
+
+import chapter04.framework.Profile
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone.UTC
 
-object CustomBooleanExample extends App {
-
-  trait Profile {
-    val profile: scala.slick.driver.JdbcProfile
-  }
+object SumTypesExample extends App {
 
   object PKs {
+
     import scala.slick.lifted.MappedTo
+
     case class MessagePK(value: Long) extends AnyVal with MappedTo[Long]
+
     case class UserPK(value: Long) extends AnyVal with MappedTo[Long]
+
   }
 
   trait Tables {
@@ -30,7 +32,8 @@ object CustomBooleanExample extends App {
     case class User(name: String, id: UserPK = UserPK(0L))
 
     class UserTable(tag: Tag) extends Table[User](tag, "user") {
-      def id   = column[UserPK]("id", O.PrimaryKey, O.AutoInc)
+      def id = column[UserPK]("id", O.PrimaryKey, O.AutoInc)
+
       def name = column[String]("name")
 
       def * = (name, id) <> (User.tupled, User.unapply)
@@ -39,38 +42,50 @@ object CustomBooleanExample extends App {
     lazy val users = TableQuery[UserTable]
     lazy val insertUser = users returning users.map(_.id)
 
-    sealed trait Priority
-    case object HighPriority extends Priority
-    case object LowPriority  extends Priority
+    sealed trait Flag
 
-    implicit val priorityType =
-      MappedColumnType.base[Priority, String](
-        flag => flag match {
-          case HighPriority => "y"
-          case LowPriority  => "n"
+    case object Important extends Flag
+
+    case object Offensive extends Flag
+
+    case object Spam extends Flag
+
+    // case object OffTopic extends Flag
+
+    implicit val flagType =
+      MappedColumnType.base[Flag, Char](
+        f => f match {
+          case Important => '!'
+          case Offensive => 'X'
+          case Spam => '$'
         },
-        ch => ch match {
-          case "Y" | "y" | "+" | "high"          => HighPriority
-          case "N" | "n" | "-" | "lo"   | "low"  => LowPriority
-      })
+        c => c match {
+          case '!' => Important
+          case 'X' => Offensive
+          case '$' => Spam
+        })
 
     case class Message(
-        senderId: UserPK,
-        content:  String,
-        ts:       DateTime,
-        flag:     Option[Priority] = None,
-        id:       MessagePK = MessagePK(0L))
+                        senderId: UserPK,
+                        content: String,
+                        ts: DateTime,
+                        flag: Option[Flag] = None,
+                        id: MessagePK = MessagePK(0L))
 
     class MessageTable(tag: Tag) extends Table[Message](tag, "message") {
-      def id       = column[MessagePK]("id", O.PrimaryKey, O.AutoInc)
+      def id = column[MessagePK]("id", O.PrimaryKey, O.AutoInc)
+
       def senderId = column[UserPK]("sender")
-      def content  = column[String]("content")
-      def priority = column[Option[Priority]]("priority")
-      def ts       = column[DateTime]("ts")
 
-      def * = (senderId, content, ts, priority, id) <> (Message.tupled, Message.unapply)
+      def content = column[String]("content")
 
-      def sender = foreignKey("sender_fk", senderId, users)(_.id, onDelete=ForeignKeyAction.Cascade)
+      def flag = column[Option[Flag]]("flag")
+
+      def ts = column[DateTime]("ts")
+
+      def * = (senderId, content, ts, flag, id) <> (Message.tupled, Message.unapply)
+
+      def sender = foreignKey("sender_fk", senderId, users)(_.id, onDelete = ForeignKeyAction.Cascade)
     }
 
     lazy val messages = TableQuery[MessageTable]
@@ -82,7 +97,6 @@ object CustomBooleanExample extends App {
   val schema = new Schema(scala.slick.driver.H2Driver)
 
   import schema._, profile.simple._
-  import PKs._
 
   def db = Database.forURL("jdbc:h2:mem:chapter04", driver = "org.h2.Driver")
 
@@ -92,7 +106,7 @@ object CustomBooleanExample extends App {
       (messages.ddl ++ users.ddl).create
 
       // Users:
-      val halId  = insertUser += User("HAL")
+      val halId = insertUser += User("HAL")
       val daveId = insertUser += User("Dave")
 
       // Insert the conversation, which took place in Feb, 2001:
@@ -100,13 +114,15 @@ object CustomBooleanExample extends App {
 
       messages ++= Seq(
         Message(daveId, "Hello, HAL. Do you read me, HAL?", start),
-        Message(halId,  "Affirmative, Dave. I read you.", start plusSeconds 2),
+        Message(halId, "Affirmative, Dave. I read you.", start plusSeconds 2),
         Message(daveId, "Open the pod bay doors, HAL.", start plusSeconds 4),
-        Message(halId,  "I'm sorry, Dave. I'm afraid I can't do that.", start plusSeconds 6, Some(HighPriority))
-        )
+        Message(halId, "I'm sorry, Dave. I'm afraid I can't do that.", start plusSeconds 6, Some(Important))
+      )
 
-     println(
-       messages.filter(_.priority === (HighPriority:Priority)).run
-     )
+      println(messages.list)
+
+      println(
+        messages.filter(_.flag === (Important: Flag)).run
+      )
   }
 }

@@ -3,7 +3,7 @@ package chapter01
 // Import the Slick interface for H2:
 import scala.slick.driver.H2Driver.simple._
 
-object Example extends App {
+object Workout extends App {
 
   // Case class representing a row in our table:
   final case class Message(
@@ -44,40 +44,45 @@ object Example extends App {
     message <- messages if message.sender === "HAL"
   } yield message
 
+  // Map to only show message ids
+  val halSaysIds = halSays.map(_.id)
+
   // Create a permanent in-memory H2 database;
   def db = Database.forURL(
     url = "jdbc:h2:mem:chat-database;DB_CLOSE_DELAY=-1",
     driver = "org.h2.Driver")
 
+  def displaySql(sql: String) {
+    println(s"\nSQL: ${sql}\n")
+  }
+
   // Connect to the database...
   db.withSession { implicit session =>
+
     // Create the "messages" table:
-    println("Creating database table")
+    println("Creating database table\n")
     messages.ddl.create
+    println(s"DDL to create table: ${messages.ddl.createStatements.toList}\n")
 
     // Create and insert the test data:
-    println("\nInserting test data")
+    println("Inserting test data\n")
     messages ++= freshTestData
 
     // Run the test query and print the results:
-    println("\nSelecting all messages:")
+    println("Selecting all messages:")
     messages.run.foreach(println)
+    displaySql(messages.selectStatement)
 
-    println(s"\nSelecting all messages, SQL: ${messages.selectStatement}")
-
-    println("\nSelecting only messages from HAL:")
+    println("Selecting only messages from HAL:")
     halSays.run.foreach(println)
+    displaySql(halSays.selectStatement)
 
-    println(s"\nSelecting only messages from HAL, SQL: ${halSays.selectStatement}")
-
-    println("\nSelecting only messages from HAL (for comprehension):")
+    println("Selecting only messages from HAL (for comprehension):")
     halSays2.run.foreach(println)
+    displaySql(halSays2.selectStatement)
 
-    println(s"\nSelecting only messages from HAL (for comprehension), SQL: ${halSays2.selectStatement}")
-
-    println("\nSelecting only message ids from HAL:")
-    halSays.map(_.id).run.foreach(println)
-
-    println(s"\nSelecting only message ids from HAL, SQL: ${halSays.map(_.id).selectStatement}")
+    println("Selecting only message ids from HAL:")
+    halSaysIds.run.foreach(println)
+    displaySql(halSaysIds.selectStatement)
   }
 }

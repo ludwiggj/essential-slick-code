@@ -1,10 +1,8 @@
-package chapter04
+package chapter04.representations.tablescolumns
+
+import chapter04.framework.Profile
 
 object NullExample extends App {
-
-  trait Profile {
-    val profile: scala.slick.driver.JdbcProfile
-  }
 
   trait Tables {
     this: Profile =>
@@ -30,7 +28,8 @@ object NullExample extends App {
 
   val schema = new Schema(scala.slick.driver.H2Driver)
 
-  import schema._, profile.simple._
+  import schema._
+  import profile.simple._
 
   def db = Database.forURL("jdbc:h2:mem:chapter04", driver = "org.h2.Driver")
 
@@ -39,12 +38,16 @@ object NullExample extends App {
 
       users.ddl.create
 
+      users.ddl.createStatements.foreach(println)
+
       // Users:
-      val daveId: Long = insertUser += User("Dave", Some("dave@example.org"))
-      val halId:  Long = insertUser += User("HAL")
-      val elena:  Long = insertUser += User("Elena", Some("elena@example.org"))
+      println(s"Inserted Dave with id ${insertUser += User("Dave", Some("dave@example.org"))}")
+      println(s"Inserted HAL with id ${insertUser += User("HAL")}")
+      println(s"Inserted Elena with id ${insertUser += User("Elena", Some("elena@example.org"))}")
 
+      users.list.foreach(println)
 
-
+      // Users with no email set
+      users.filter(_.email.isEmpty).list.foreach(println)
   }
 }

@@ -3,9 +3,9 @@ package chapter01.exercises
 // Import the Slick interface for H2:
 import scala.slick.driver.H2Driver.simple._
 
-import chapter01.Example.{Message, MessageTable}
+import chapter01.Workout.{Message, MessageTable}
 
-object Exercise extends App {
+object Exercise_1_5 extends App {
   def db = Database.forURL(
     url = "jdbc:h2:mem:chat-database;DB_CLOSE_DELAY=-1",
     driver = "org.h2.Driver")
@@ -23,7 +23,7 @@ object Exercise extends App {
     messages.ddl.create
 
     println("\nInserting test data")
-    messages ++= chapter01.Example.freshTestData
+    messages ++= chapter01.Workout.freshTestData
 
     println("\nExercise 1: insert message")
     println(messages += message)
