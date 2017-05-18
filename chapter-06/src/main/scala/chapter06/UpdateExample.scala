@@ -6,7 +6,7 @@ import scala.slick.jdbc.{ StaticQuery => Q }
 import ChatSchema._
 import java.sql.Timestamp
 
-object PlainUpdatesExample extends App {
+object UpdateExample extends App {
 
   val schema = new Schema(scala.slick.driver.H2Driver)
   import schema._, profile.simple._
@@ -21,14 +21,18 @@ object PlainUpdatesExample extends App {
     // Simple update example:
     val char = "!"
     val query = sqlu"""UPDATE "message" SET "content" = CONCAT("content", $char)"""
-    val excalimedRows = query.first
-    println(s"Exclamation mark added to $excalimedRows rows")
+    val exclaimedRows = query.first
+    println(s"Exclamation mark added to $exclaimedRows rows")
+
+    println(messages.list)
 
     // Using + and +?
-    val pattern = "%!"
+    val pattern = "%?"
     val sensitive =  query + """ WHERE "content" NOT LIKE """ +? pattern
     val sensitiveRows = sensitive.first
     println(s"Exclamation mark added sensitively to $sensitiveRows rows")
+
+    println(messages.list)
 
     // Using DateTime as an example of a custom type
 
@@ -37,7 +41,10 @@ object PlainUpdatesExample extends App {
        (dt, pp) => pp >> new Timestamp(dt.getMillis)
      )
 
-    val now = sqlu"""UPDATE message SET "ts" = """ +? DateTime.now
+    val now = sqlu"""UPDATE "message" SET "ts" = """ +? DateTime.now
 
+    now.first
+
+    println(messages.list)
   }
 }
