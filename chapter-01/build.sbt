@@ -2,7 +2,7 @@ name := "essential-slick-chapter-01"
 
 version := "3.2"
 
-scalaVersion := "2.12.1"
+scalaVersion := "2.11.8"
 
 scalacOptions ++= Seq(
   "-deprecation",

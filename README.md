@@ -41,14 +41,14 @@ Creating database table
 Inserting test data
 
 Selecting all messages:
-Message(Dave,Hello, HAL. Do you read me, HAL?,1)
-Message(HAL,Affirmative, Dave. I read you.,2)
-Message(Dave,Open the pod bay doors, HAL.,3)
-Message(HAL,I'm sorry, Dave. I'm afraid I can't do that.,4)
+chapter01.Message(Dave,Hello, HAL. Do you read me, HAL?,1)
+chapter01.Message(HAL,Affirmative, Dave. I read you.,2)
+chapter01.Message(Dave,Open the pod bay doors, HAL.,3)
+chapter01.Message(HAL,I'm sorry, Dave. I'm afraid I can't do that.,4)
 
 Selecting only messages from HAL:
-Message(HAL,Affirmative, Dave. I read you.,2)
-Message(HAL,I'm sorry, Dave. I'm afraid I can't do that.,4)
+chapter01.Message(HAL,Affirmative, Dave. I read you.,2)
+chapter01.Message(HAL,I'm sorry, Dave. I'm afraid I can't do that.,4)
 [success] Total time: 5 s, completed 06/05/2015 2:22:22 PM
 ```
 
@@ -71,7 +71,7 @@ The examples are:
 3. `NestedCaseClassExampleApp` in _nested_case_class.scala_ - is the exercise on custom case class mapping.
 4. `NullExample` in _nulls.scala_ - where the `User` table has an optional `email` field.
 5. `PKExample` in _primary_keys.scala_ - the `User.id` becomes an `Option[Long]`, and the `OccupantTable` is added.
-6. `ForeignKeyExample` in _foreign_keys.scala_ - where `MessageTable` has a foreign key to the `UserTable`.
+6. `ForeignKeyExample` in _foreign_keys.scala_ - where `chapter01.MessageTable` has a foreign key to the `UserTable`.
 7. `ValueClassesExample` in _value_classes.scala_ - introduces types for primary keys, as `MessagePK` and `UserPk`.
 8. `SumTypesExample` in _sum_types.scala_ - the message `Flag`ing example from the book.
 9. `CustomBooleanExample` in _custom_boolean.scala_ - is the "Custom Boolean" exercise code.
