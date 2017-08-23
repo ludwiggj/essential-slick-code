@@ -3,10 +3,10 @@ package chapter03.exercises
 import slick.jdbc.H2Profile.api._
 
 import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import chapter03.Helper.{messages, recreateDb, repopulateDb}
+import chapter03.Helper.{messages, recreateDb}
 import chapter03.Message
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object Questions extends App {
 
