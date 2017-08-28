@@ -1,74 +1,67 @@
+package chapter05.representations.tablescolumns
+
 import java.sql.Timestamp
+
+import chapter05.framework.Profile
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone.UTC
-import scala.concurrent.Await
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
 import slick.dbio._
 import slick.jdbc.JdbcProfile
-import slick.lifted.MappedTo
 
-// Code relating to 5.4.1 "Value Classes"
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
-object ChatSchema {
+object ChatSchema2 {
 
-  trait Profile {
-    val profile: JdbcProfile
-  }
-
-  //
   // A primary key type for each of our tables:
-  //
   object PKs {
     import slick.lifted.MappedTo
-    case class MessagePK(value: Long) extends AnyVal with MappedTo[Long]
-    case class UserPK(value: Long) extends AnyVal with MappedTo[Long]
+    final case class PK[A](value: Long) extends AnyVal with MappedTo[Long]
   }
 
   trait Tables {
     this: Profile =>
 
-    import profile.api._
     import PKs._
+    import profile.api._
 
-    //
     // DateTime <-> Timestamp mapping
-    //
     implicit val jodaDateTimeType =
       MappedColumnType.base[DateTime, Timestamp](
         dt => new Timestamp(dt.getMillis),
         ts => new DateTime(ts.getTime, UTC))
 
-    //
     // User table using UserPK as a primary key type
-    //
-    case class User(name: String, id: UserPK = UserPK(0L))
+    case class User(name: String, id:PK[UserTable] = PK[UserTable](0L))
 
     class UserTable(tag: Tag) extends Table[User](tag, "user") {
-      def id   = column[UserPK]("id", O.PrimaryKey, O.AutoInc)
+      def id = column[PK[UserTable]]("id", O.PrimaryKey, O.AutoInc)
+
       def name = column[String]("name")
 
       def * = (name, id).mapTo[User]
     }
 
-    lazy val users      = TableQuery[UserTable]
+    lazy val users = TableQuery[UserTable]
     lazy val insertUser = users returning users.map(_.id)
 
-    //
     // Message table using a MessagePK as a primary key,
     // and referencing UserPK as a foreign key.
-    //
     case class Message(
-      senderId: UserPK,
-      content:  String,
-      ts:       DateTime,
-      id:       MessagePK = MessagePK(0L))
+                        senderId: PK[UserTable],
+                        content: String,
+                        ts: DateTime,
+                        id: PK[MessageTable] = PK[MessageTable](0L))
 
     class MessageTable(tag: Tag) extends Table[Message](tag, "message") {
-      def id       = column[MessagePK]("id", O.PrimaryKey, O.AutoInc)
-      def senderId = column[UserPK]("sender")
-      def content  = column[String]("content")
-      def ts       = column[DateTime]("ts")
+      def id = column[PK[MessageTable]]("id", O.PrimaryKey, O.AutoInc)
+
+      def senderId = column[PK[UserTable]]("sender")
+
+      def content = column[String]("content")
+
+      def ts = column[DateTime]("ts")
 
       def * = (senderId, content, ts, id).mapTo[Message]
 
@@ -76,7 +69,7 @@ object ChatSchema {
     }
 
     lazy val messages = TableQuery[MessageTable]
-    lazy val ddl      = users.schema ++ messages.schema
+    lazy val ddl = users.schema ++ messages.schema
 
     def populate = {
 
@@ -84,10 +77,10 @@ object ChatSchema {
       val start = new DateTime(2001, 2, 17, 10, 22, 50)
 
       for {
-        _      <- ddl.create
-        halId  <- insertUser += User("HAL")
+        _ <- ddl.create
+        halId <- insertUser += User("HAL")
         daveId <- insertUser += User("Dave")
-        count  <- messages   ++= Seq(
+        count <- messages ++= Seq(
           Message(daveId, "Hello, HAL. Do you read me, HAL?", start),
           Message(halId, "Affirmative, Dave. I read you.", start plusSeconds 2),
           Message(daveId, "Open the pod bay doors, HAL.", start plusSeconds 4),
@@ -101,34 +94,37 @@ object ChatSchema {
 
 }
 
-object ValueClassesExample extends App {
-  import ChatSchema._
+object ValueClassesExample2 extends App {
+
+  import ChatSchema2._
+  import ChatSchema2.PKs.PK
 
   val schema = new Schema(slick.jdbc.H2Profile)
 
   def exec[T](action: DBIO[T]): T =
     Await.result(db.run(action), 2 seconds)
 
-  import schema._, profile.api._
-  import PKs._
+  import schema._
+  import profile.api._
 
   val db = Database.forConfig("chapter05")
 
   exec(populate)
+
   // Won't compile:
-  /*
-  users.filter(_.id === 6L)
-  val halId = UserPK(3L)
-  val rubbish = for {
-   id      <- messages.filter(_.senderId === halId).map(_.id)
-   rubbish <- messages.filter(_.senderId === id)
-  } yield rubbish
-  */
+  // users.filter(_.id === 6L)
+
+  val halId = PK[UserTable](1L)
+  val halsMessages = for {
+    id <- messages.filter(_.senderId === halId).map(_.id)
+    // rubbish <- messages.filter(_.senderId === 3L)
+  } yield id
+
+  exec(halsMessages.result).foreach { println }
 
   println("\nMessages in the database:")
   println(exec(messages.result))
 
   println("\nUsers in the database:")
   println(exec(users.result))
-
 }

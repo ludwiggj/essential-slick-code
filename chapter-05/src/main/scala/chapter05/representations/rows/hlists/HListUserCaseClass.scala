@@ -1,18 +1,16 @@
-import scala.concurrent.Await
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
+package chapter05.representations.rows.hlists
+
+import chapter05.framework.Profile
+import slick.collection.heterogeneous.HNil
 import slick.jdbc.JdbcProfile
-import slick.jdbc.H2Profile.api._
-import slick.collection.heterogeneous.{ HList, HCons, HNil, Nat }
-import slick.collection.heterogeneous.syntax._
+
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 // Code relating to 5.2.3 "Heterogeneous Lists"
 
 object HListExampleApp extends App {
-
-  trait Profile {
-    val profile: JdbcProfile
-  }
 
   trait Tables {
     this: Profile =>
@@ -89,7 +87,8 @@ object HListExampleApp extends App {
 
   val schema = new Schema(slick.jdbc.H2Profile)
 
-  import schema._, profile.api._
+  import schema._
+  import profile.api._
 
   def exec[T](action: DBIO[T]): T =
     Await.result(db.run(action), 2 seconds)

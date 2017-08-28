@@ -1,30 +1,23 @@
-import java.sql.Timestamp
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone.UTC
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone.UTC
-import scala.concurrent.Await
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
+package chapter05.representations.tablescolumns
+
+import chapter05.framework.Profile
 import slick.jdbc.JdbcProfile
+
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 // Code relating to 5.3.5 "Foreign Keys"
 
-object ForeignKeyExample extends App {
-
-  trait Profile {
-    val profile: JdbcProfile
-  }
+object ForeignKeyExample1 extends App {
 
   trait Tables {
     this: Profile =>
 
     import profile.api._
 
-    //
     // Users in the user table have an id which will
     // be used as a foreign key in the message table.
-    //
     case class User(name: String, id: Long = 0L)
 
     class UserTable(tag: Tag) extends Table[User](tag, "user") {
@@ -37,11 +30,9 @@ object ForeignKeyExample extends App {
     lazy val users = TableQuery[UserTable]
     lazy val insertUser = users returning users.map(_.id)
 
-    //
     // The message table, in which we represent the sender as
     // the key in the user table (rather than a String name
     // we've used up until this point)
-    //
     case class Message(
         senderId: Long,
         content:  String,
@@ -54,9 +45,7 @@ object ForeignKeyExample extends App {
 
       def * = (senderId, content, id).mapTo[Message]
 
-      //
       // Establish a FK relation:
-      //
       def sender = foreignKey("sender_fk", senderId, users)(_.id, onDelete=ForeignKeyAction.Cascade)
     }
 
@@ -66,12 +55,12 @@ object ForeignKeyExample extends App {
     lazy val ddl = users.schema ++ messages.schema
   }
 
-
   class Schema(val profile: JdbcProfile) extends Tables with Profile
 
   val schema = new Schema(slick.jdbc.H2Profile)
 
-  import schema._, profile.api._
+  import schema._
+  import profile.api._
 
   def exec[T](action: DBIO[T]): T =
     Await.result(db.run(action), 2 seconds)

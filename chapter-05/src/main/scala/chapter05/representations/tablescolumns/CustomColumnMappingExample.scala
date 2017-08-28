@@ -1,23 +1,16 @@
+package chapter05.representations.tablescolumns
+
 import java.sql.Timestamp
+
+import chapter05.framework.Profile
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone.UTC
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone.UTC
+
 import scala.concurrent.Await
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-import slick.jdbc.JdbcProfile
-import slick.lifted.MappedTo
+import scala.concurrent.duration._
 
-//
-// Solution to "Custom Boolean" exercise
-//
-
-object CustomBooleanExample extends App {
-
-  trait Profile {
-    val profile: JdbcProfile
-  }
+object CustomColumnMappingExample extends App {
 
   object PKs {
     import slick.lifted.MappedTo
@@ -28,8 +21,8 @@ object CustomBooleanExample extends App {
   trait Tables {
     this: Profile =>
 
-    import profile.api._
     import PKs._
+    import profile.api._
 
     implicit val jodaDateTimeType =
       MappedColumnType.base[DateTime, Timestamp](
@@ -92,8 +85,8 @@ object CustomBooleanExample extends App {
 
   val schema = new Schema(slick.jdbc.H2Profile)
 
-  import schema._, profile.api._
-  import PKs._
+  import schema._
+  import profile.api._
 
   def exec[T](action: DBIO[T]): T =
     Await.result(db.run(action), 2 seconds)

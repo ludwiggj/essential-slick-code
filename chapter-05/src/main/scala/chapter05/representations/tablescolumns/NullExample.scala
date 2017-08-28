@@ -1,15 +1,15 @@
-import scala.concurrent.Await
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
+package chapter05.representations.tablescolumns
+
+import chapter05.framework.Profile
 import slick.jdbc.JdbcProfile
+
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 // Code relating to 5.3.1 "Nullable Columns"
 
 object NullExample extends App {
-
-  trait Profile {
-    val profile: JdbcProfile
-  }
 
   trait Tables {
     this: Profile =>
@@ -34,7 +34,8 @@ object NullExample extends App {
 
   val schema = new Schema(slick.jdbc.H2Profile)
 
-  import schema._, profile.api._
+  import schema._
+  import profile.api._
 
   def exec[T](action: DBIO[T]): T =
     Await.result(db.run(action), 2 seconds)
@@ -49,12 +50,13 @@ object NullExample extends App {
     folks  <- users.result
   } yield folks
 
-
   println("\nUsers with optional email addresses:")
   exec(program).foreach { println }
 
-  println("\nUsers sorted with NULLs last")
+  println("\nUsers without an email:")
+  exec(users.filter(_.email.isEmpty).result).foreach { println }
+
+  println("\nUsers sorted with NULLs last:")
   val sortingOnNullableExample = users.sortBy { _.name.asc.nullsLast }.result
   exec(sortingOnNullableExample).foreach { println }
-
 }

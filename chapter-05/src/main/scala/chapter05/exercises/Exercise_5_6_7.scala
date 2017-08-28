@@ -1,15 +1,13 @@
-import scala.concurrent.Await
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
+package chapter05.exercises
+
+import chapter05.framework.Profile
 import slick.jdbc.JdbcProfile
 
-// Template for you to complete for exercise 5.6.1
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
-object NestedCaseClassExampleApp extends App {
-
-  trait Profile {
-    val profile:JdbcProfile
-  }
+object Exercise_5_6_7 extends App {
 
   trait Tables {
     this: Profile =>
@@ -20,6 +18,12 @@ object NestedCaseClassExampleApp extends App {
     case class EmailContact(name: String, email: String)
     case class Address(street: String, city: String, country: String)
     case class User(contact: EmailContact, address: Address, id: Long = 0L)
+
+    def intoUser(fields: (String, String, String, String, String, Long)): User =
+      User(EmailContact(fields._1, fields._2), Address(fields._3, fields._4, fields._5), fields._6)
+
+    def fromUser(user: User): Option[(String, String, String, String, String, Long)] =
+      Some((user.contact.name, user.contact.email, user.address.street, user.address.city, user.address.country, user.id))
 
     // ...but our legacy table looks like this:
     final class UserTable(tag: Tag) extends Table[User](tag, "user") {
@@ -49,7 +53,7 @@ object NestedCaseClassExampleApp extends App {
       def petName      = column[String]("pet")
       def partnerName  = column[String]("partner")
 
-      def * = ???
+      def * = (name, email, street, city, country, id) <> (intoUser, fromUser)
     }
 
     lazy val users = TableQuery[UserTable]
@@ -59,7 +63,8 @@ object NestedCaseClassExampleApp extends App {
 
   val schema = new Schema(slick.jdbc.H2Profile)
 
-  import schema._, profile.api._
+  import schema._
+  import profile.api._
 
   def exec[T](action: DBIO[T]): T =
     Await.result(db.run(action), 2 seconds)
@@ -76,10 +81,8 @@ object NestedCaseClassExampleApp extends App {
     xs <- users.result
   } yield xs
 
-
   exec(setup)
 
   println("\nContents of the user table:")
   println(exec(users.result))
-
 }

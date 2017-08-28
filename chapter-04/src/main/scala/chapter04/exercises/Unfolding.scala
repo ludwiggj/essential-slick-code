@@ -1,4 +1,4 @@
-package exercises
+package chapter04.exercises
 
 import slick.jdbc.H2Profile.api._
 

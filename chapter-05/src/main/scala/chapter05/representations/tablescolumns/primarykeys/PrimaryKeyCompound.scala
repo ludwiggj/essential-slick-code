@@ -1,16 +1,15 @@
-import org.joda.time.DateTime
-import scala.concurrent.Await
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
+package chapter05.representations.tablescolumns.primarykeys
+
+import chapter05.framework.Profile
 import slick.jdbc.JdbcProfile
+
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 // Code relating to 5.3.2 "Primary Keys".
 
-object PKExample extends App {
-
-  trait Profile {
-    val profile: JdbcProfile
-  }
+object PrimaryKeyCompound extends App {
 
   trait Tables {
     this: Profile =>
@@ -23,19 +22,18 @@ object PKExample extends App {
     case class User(id: Option[Long], name: String, email: Option[String] = None)
 
     class UserTable(tag: Tag) extends Table[User](tag, "user") {
-      def id    = column[Long]("id", O.AutoInc, O.PrimaryKey)
+      def id    = column[Long]("id", O.AutoInc)
       def name  = column[String]("name")
       def email = column[Option[String]]("email")
 
+      def pk = primaryKey("pk_id", id)
       def * = (id.?, name, email).mapTo[User]
     }
 
     lazy val users = TableQuery[UserTable]
     lazy val insertUser = users returning users.map(_.id)
 
-    //
     // We also represent the various rooms on the ship:
-    //
     case class Room(title: String, id: Long = 0L)
 
     class RoomTable(tag: Tag) extends Table[Room](tag, "room") {
@@ -47,9 +45,7 @@ object PKExample extends App {
     lazy val rooms = TableQuery[RoomTable]
     lazy val insertRoom = rooms returning rooms.map(_.id)
 
-    //
     // A user can be in a room, which we represent in the "occupant" table:
-    //
     case class Occupant(roomId: Long, userId: Long)
 
     class OccupantTable(tag: Tag) extends Table[Occupant](tag, "occupant") {
@@ -63,9 +59,7 @@ object PKExample extends App {
 
     lazy val occupants = TableQuery[OccupantTable]
 
-    //
     // The schema for all three tables:
-    //
     lazy val ddl = users.schema ++ rooms.schema ++ occupants.schema
   }
 
@@ -73,17 +67,16 @@ object PKExample extends App {
 
   val schema = new Schema(slick.jdbc.H2Profile)
 
-  import schema._, profile.api._
+  import schema._
+  import profile.api._
 
   def exec[T](action: DBIO[T]): T =
     Await.result(db.run(action), 2 seconds)
 
   val db = Database.forConfig("chapter05")
 
-  //
   // Set up the database, populate rooms and users,
   // and place Dave in the Air Lock:
-  //
   val init = for {
     _         <- ddl.create
     daveId    <- insertUser += User(None, "Dave", Some("dave@example.org"))
@@ -91,14 +84,14 @@ object PKExample extends App {
     elena     <- insertUser += User(None, "Elena", Some("elena@example.org"))
     airLockId <- insertRoom += Room("Air Lock")
     _         <- occupants += Occupant(airLockId, daveId)
+    // _         <- occupants += Occupant(airLockId, daveId) // PK violation
   } yield ()
 
   exec(init)
 
   println("\nUsers database contains:")
-  exec(users.result).foreach { println}
+  exec(users.result).foreach { println }
 
   println("\nOccupation is:")
-  exec(occupants.result).foreach { println}
-
+  exec(occupants.result).foreach { println }
 }

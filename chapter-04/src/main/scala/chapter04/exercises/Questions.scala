@@ -1,4 +1,4 @@
-package exercises
+package chapter04.exercises
 
 import chapter04.Helper._
 import chapter04.Message
